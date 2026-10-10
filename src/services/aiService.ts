@@ -562,7 +562,7 @@ async function queryOllamaVisionOrText(opts: {
 }): Promise<Partial<PlantAnalysisResult> | null> {
   const url = `${opts.endpoint.replace(/\/$/, '')}/api/generate`;
   const controller = new AbortController();
-  const timeoutMs = opts.timeoutMs || 45000; // 45s to allow local model generation without 499 abort
+  const timeoutMs = opts.timeoutMs || 90000; // 90s to allow larger models running on CPU to complete without connection abort
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
