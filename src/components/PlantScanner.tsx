@@ -134,9 +134,10 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
     setLoggedSuccess(false);
 
     try {
-      const activeKey = sampleKey !== undefined ? sampleKey : activeSampleId;
+      const targetFile = file !== undefined ? file : selectedFile;
+      const activeKey = targetFile ? undefined : (sampleKey !== undefined ? (sampleKey || undefined) : (activeSampleId || undefined));
       const res = await analyzePlantSpecimen({
-        imageFile: file !== undefined ? file : selectedFile,
+        imageFile: targetFile,
         sampleKey: activeKey,
         speciesHint: speciesHintInput.trim() || undefined,
         config: ollamaConfig,
@@ -176,7 +177,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      runAnalysis(undefined, file);
+      runAnalysis('', file);
     }
   };
 
@@ -295,7 +296,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
                 <span>Upload Field Photo</span>
               </button>
               <button
-                onClick={() => runAnalysis()}
+                onClick={() => runAnalysis(selectedFile ? '' : activeSampleId, selectedFile)}
                 disabled={analyzing}
                 className="py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-950/60 border border-emerald-400/40 transition-all disabled:opacity-50"
               >
@@ -373,7 +374,11 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-emerald-500/20">
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                      result.confidence < 50
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-400/30'
+                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                    }`}>
                       {result.confidence}% Match Confidence
                     </span>
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
@@ -381,10 +386,17 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
                         ? 'bg-emerald-900/40 text-emerald-300 border-emerald-500/40'
                         : result.nativeStatus === 'Invasive'
                         ? 'bg-rose-950/60 text-rose-300 border-rose-500/40'
+                        : result.nativeStatus === 'Non-Living / Synthetic'
+                        ? 'bg-purple-950/70 text-purple-300 border-purple-500/40'
                         : 'bg-amber-950/60 text-amber-300 border-amber-500/40'
                     }`}>
                       {result.nativeStatus}
                     </span>
+                    {selectedFile && (
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-950/60 text-blue-300 border border-blue-500/30">
+                        Uploaded Field Photo
+                      </span>
+                    )}
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
                     {result.commonName}
@@ -392,6 +404,24 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
                   <p className="text-emerald-300/80 font-mono text-sm italic">
                     {result.scientificName} • {result.family}
                   </p>
+
+                  {/* Context Banner if Non-Botanical or Low Confidence */}
+                  {result.nativeStatus === 'Non-Living / Synthetic' && (
+                    <div className="mt-3 p-3 rounded-xl bg-purple-950/40 border border-purple-500/30 flex items-start gap-2 text-xs text-purple-200">
+                      <Info className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <p>
+                        <strong>Non-Botanical Subject:</strong> The analyzer detected an artificial graphic or non-living object rather than wild vegetation. Step outdoors to explore living plants!
+                      </p>
+                    </div>
+                  )}
+                  {result.confidence < 50 && result.nativeStatus !== 'Non-Living / Synthetic' && (
+                    <div className="mt-3 p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 flex items-start gap-2 text-xs text-amber-200">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <p>
+                        <strong>Low Botanical Confidence:</strong> Could not confirm distinct leaves or petals. Enter a clue in the Species Hint field below to assist Gemma 2.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Log to Journal Action */}
