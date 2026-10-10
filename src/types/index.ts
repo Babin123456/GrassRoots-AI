@@ -5,8 +5,8 @@ export interface PlantAnalysisResult {
   scientificName: string;
   confidence: number;
   family: string;
-  nativeStatus: 'Native' | 'Non-Native Naturalized' | 'Invasive' | 'Unknown';
-  conservationStatus: 'Least Concern' | 'Vulnerable' | 'Threatened' | 'Protected' | 'Common';
+  nativeStatus: 'Native' | 'Non-Native Naturalized' | 'Invasive' | 'Unknown' | 'Non-Living / Synthetic';
+  conservationStatus: 'Least Concern' | 'Vulnerable' | 'Threatened' | 'Protected' | 'Common' | 'Data Deficient' | 'Non-Applicable' | string;
   ecologicalRole: string;
   sunlightNeeds: string;
   soilMoisture: string;
