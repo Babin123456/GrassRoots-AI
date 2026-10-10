@@ -12,7 +12,7 @@ export async function checkOllamaStatus(endpoint: string = 'http://localhost:114
   const startTime = performance.now();
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout to prevent premature abort under CPU load
     const response = await fetch(`${endpoint.replace(/\/$/, '')}/api/tags`, {
       method: 'GET',
       signal: controller.signal,
@@ -254,13 +254,19 @@ BOTANICAL_SPECIMEN_KNOWLEDGE['reishi-mushroom'] = BOTANICAL_SPECIMEN_KNOWLEDGE['
 BOTANICAL_SPECIMEN_KNOWLEDGE['white-oak'] = BOTANICAL_SPECIMEN_KNOWLEDGE['oak'];
 
 // Preprocess user uploaded image to max 512x512 JPEG for rapid, robust local vision inference
-async function preprocessImageFile(file: File): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
+export interface ProcessedImageData {
+  base64: string;
+  hasBotanicalHues: boolean;
+}
+
+// Preprocess user uploaded image to max 384x384 JPEG and analyze botanical color distribution
+async function preprocessImageFile(file: File): Promise<ProcessedImageData> {
+  return new Promise<ProcessedImageData>((resolve, reject) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
       const reader = new FileReader();
       reader.onload = () => {
         const res = reader.result as string;
-        resolve(res.split(',')[1] || res);
+        resolve({ base64: res.split(',')[1] || res, hasBotanicalHues: true });
       };
       reader.onerror = reject;
       reader.readAsDataURL(file);
@@ -289,16 +295,46 @@ async function preprocessImageFile(file: File): Promise<string> {
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           const res = reader.result as string;
-          resolve(res.split(',')[1] || res);
+          resolve({ base64: res.split(',')[1] || res, hasBotanicalHues: true });
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
+
+        // Fast optical scan for living chlorophyll or vibrant floral pigmentation
+        let hasBotanicalHues = true;
+        try {
+          const imgData = ctx.getImageData(0, 0, width, height);
+          const data = imgData.data;
+          let floraPixels = 0;
+          const sampleStep = 8;
+          const totalSampled = Math.floor(data.length / (4 * sampleStep));
+          for (let i = 0; i < data.length; i += 4 * sampleStep) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            // Chlorophyll green: green dominant
+            const isChlorophyll = g > 45 && g > r * 1.15 && g > b * 1.08;
+            // Vibrant floral petals (yellow, orange, pink, purple)
+            const isYellowFlower = r > 165 && g > 140 && b < 110;
+            const isPinkPurpleFlower = r > 140 && b > 115 && g < r * 0.82;
+            if (isChlorophyll || isYellowFlower || isPinkPurpleFlower) {
+              floraPixels++;
+            }
+          }
+          hasBotanicalHues = (floraPixels / totalSampled) >= 0.04;
+        } catch {
+          hasBotanicalHues = true;
+        }
+
         const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        resolve(jpegDataUrl.split(',')[1] || jpegDataUrl);
+        resolve({
+          base64: jpegDataUrl.split(',')[1] || jpegDataUrl,
+          hasBotanicalHues,
+        });
       };
       img.onerror = () => {
         const res = reader.result as string;
-        resolve(res.split(',')[1] || res);
+        resolve({ base64: res.split(',')[1] || res, hasBotanicalHues: true });
       };
       img.src = reader.result as string;
     };
@@ -417,27 +453,26 @@ function generateGenericBotanicalResult(
     }
 
     return {
-      commonName: 'Wild Flora Specimen',
-      scientificName: 'Angiosperm species',
-      family: 'Magnoliophyta (Flowering Plants)',
-      nativeStatus: 'Native',
-      conservationStatus: 'Least Concern',
-      confidence: 86.0,
-      ecologicalRole: 'Photosynthetic primary producer contributing to local nectar supply, insect biodiversity, and soil stabilization.',
-      sunlightNeeds: 'Full Sun to Moderate Partial Shade',
-      soilMoisture: 'Adaptable native soil moisture',
-      bloomSeason: 'Spring through Autumn',
+      commonName: 'Unverified Subject (No Flora Confirmed)',
+      scientificName: 'Unconfirmed / Pending Botanical Inspection',
+      family: 'Unverified / Potential Non-Flora',
+      nativeStatus: 'Non-Living / Synthetic',
+      conservationStatus: 'Data Deficient',
+      confidence: 25.0,
+      ecologicalRole: 'Living botanical foliage, petal structures, or chlorophyll could not be verified in this photograph. If this is a personal portrait, vehicle, screen, or indoor object, step outside into nature to photograph real flora! If this is a living plant, provide a short clue in the Species Hint field below to guide the model.',
+      sunlightNeeds: 'Requires natural living habitat',
+      soilMoisture: 'Requires natural soil',
+      bloomSeason: 'Unknown',
       foragingSafety: {
         isEdible: false,
-        cautionNote: 'Wild specimens should always be cross-verified with botanical references before harvesting or ingestion.',
-        lookalikesWarning: 'Always confirm exact genus with local botanical field keys.',
+        cautionNote: 'Subject could not be reliably verified as edible flora.',
       },
       keyIdentificationFeatures: [
-        'Characteristic petal or foliar symmetry',
-        'Visible vegetative margins with chlorophyll pigmentation',
-        'Natural outdoor daylight specimen'
+        'No conclusive botanical foliage or petal structures verified',
+        'Ensure the camera is focused closely on living leaves or flowers in outdoor daylight',
+        'Provide an optional species clue below if testing a known wildflower'
       ],
-      touchGrassChallenge: 'Gently feel the texture of the leaves and count the number of petals or leaf segments.',
+      touchGrassChallenge: 'Step outside into natural daylight and photograph a living wild leaf or flower from 1 foot away!',
       modelUsed: modelName,
       inferenceTimeMs: 400,
       isMockFallback: true,
@@ -536,8 +571,11 @@ export async function analyzePlantSpecimen(params: {
 
   try {
     let imageBase64: string | undefined;
+    let hasBotanicalHues = true;
     if (params.imageFile) {
-      imageBase64 = await preprocessImageFile(params.imageFile);
+      const processed = await preprocessImageFile(params.imageFile);
+      imageBase64 = processed.base64;
+      hasBotanicalHues = processed.hasBotanicalHues;
     }
 
     // STAGE 1: If an image is provided, probe if a vision model (moondream, llava, minicpm-v) is available in Ollama
@@ -584,48 +622,102 @@ export async function analyzePlantSpecimen(params: {
       }
 
       // Check if explicitly non-flora or non-botanical graphic
-      const nonBotanicalPattern = /brain|book|digital|graphic|illustration|render|screen|computer|neon|artificial|not a plant|non-plant|human|person|people|man|men|woman|women|figure|character|car|room|device|gadget|drawing|symbol|icon|logo|text|letter|word|font|hoodie|jacket|shirt|code|coding|developer|apparel|poster|banner|sticker|cartoon|anime|clipart/i;
+      const nonBotanicalPattern = /brain|book|digital|graphic|illustration|render|screen|computer|neon|artificial|not a plant|non-plant|human|person|people|man|men|woman|women|girl|boy|face|hair|head|selfie|portrait|glasses|spectacles|sunglasses|car|vehicle|automobile|seat|window|interior|room|indoor|wall|door|device|gadget|drawing|symbol|icon|logo|text|letter|word|font|hoodie|jacket|shirt|code|coding|developer|apparel|poster|banner|sticker|cartoon|anime|clipart/i;
       const isExplicitlyNonFlora = visualDescription ? nonBotanicalPattern.test(visualDescription) : false;
 
       if (isExplicitlyNonFlora) {
+        const isPortraitOrHuman = /human|person|people|woman|women|man|men|girl|boy|face|selfie|portrait|glasses|spectacles/i.test(visualDescription);
+        const isVehicleOrObject = /car|vehicle|automobile|seat|device|gadget|room|indoor|window/i.test(visualDescription);
+
+        const subjectLabel = isPortraitOrHuman
+          ? 'Personal Portrait / Human Subject'
+          : isVehicleOrObject
+          ? 'Non-Botanical Vehicle / Object'
+          : 'Digital Graphic / Non-Botanical Subject';
+
         return {
-          commonName: 'Digital Graphic / Non-Botanical Subject',
-          scientificName: 'Non-Living / Synthetic Subject',
-          family: 'Synthetic / Non-Botanical',
+          commonName: subjectLabel,
+          scientificName: 'Non-Living / Non-Flora Subject',
+          family: 'Non-Botanical',
           nativeStatus: 'Non-Living / Synthetic',
           conservationStatus: 'Non-Living',
           confidence: 15.0,
-          ecologicalRole: `Non-botanical subject detected ("${visualDescription}"). GrassRoots AI is designed to help you disconnect from digital screens and explore living plants and soil outdoors!`,
+          ecologicalRole: `Non-botanical subject detected ("${visualDescription}"). GrassRoots AI is designed to help you disconnect from screens, vehicles, and indoor settings to explore living flora and native soil outdoors!`,
           sunlightNeeds: 'N/A — Non-living subject',
           soilMoisture: 'N/A — Non-living subject',
           bloomSeason: 'Non-flowering',
           foragingSafety: {
             isEdible: false,
-            cautionNote: 'Non-botanical object. Never ingest synthetic or non-plant objects.',
+            cautionNote: 'Non-botanical subject. Never ingest non-flora objects.',
           },
           keyIdentificationFeatures: [
-            'Artificial or digital graphics detected',
-            'No living leaf venation, chlorophyll, or petal structures confirmed',
-            'Take a photo of living wild flora in natural sunlight to identify'
+            'Non-botanical subject detected (no living foliage or petal anatomy)',
+            'Living plants feature chlorophyll, stomata, leaf venation, or flower reproductive parts',
+            'Take a photo of living wild flora in natural outdoor sunlight to identify'
           ],
-          touchGrassChallenge: 'Step away from computer screens and notice the fresh air, living soil, and trees outside!',
-          modelUsed: `${usedVisionModel || 'Vision Engine'} (Instant Filter)`,
+          touchGrassChallenge: 'Step outside into the sunlight, breathe the fresh air, and observe wild plants or trees around your neighborhood!',
+          modelUsed: `${usedVisionModel || 'Vision Engine'} (Safety Filter)`,
           inferenceTimeMs: Math.round(performance.now() - startTime),
           isMockFallback: false,
         };
       }
 
-      // If vision model was unavailable or timed out on CPU, do not falsely declare a real plant as "non-living"!
-      // Instead, proceed to Stage 2 reasoning or high-fidelity fallback.
+      // If no foliage or floral colors were confirmed in optical canvas scan, and no hint was provided:
+      if (!hasBotanicalHues && !speciesHint) {
+        return {
+          commonName: 'Non-Botanical Subject / Indoor Photo',
+          scientificName: 'Non-Living / Non-Flora Subject',
+          family: 'Non-Botanical Subject',
+          nativeStatus: 'Non-Living / Synthetic',
+          conservationStatus: 'Non-Living',
+          confidence: 15.0,
+          ecologicalRole: 'No living foliage, leaf venation, or wild floral pigmentation detected in this image. GrassRoots AI is designed to help you disconnect from indoor spaces and vehicles to explore living flora, fungi, and trees outdoors!',
+          sunlightNeeds: 'N/A — Non-living subject',
+          soilMoisture: 'N/A — Non-living subject',
+          bloomSeason: 'Non-flowering',
+          foragingSafety: {
+            isEdible: false,
+            cautionNote: 'Non-botanical subject. Never ingest non-flora objects.',
+          },
+          keyIdentificationFeatures: [
+            'No living chlorophyll or flower petal pigmentation verified in photo',
+            'Ensure photos are taken outdoors in daylight with camera focused on living leaves or flowers',
+            'Step outside to discover wild native plants in your local area'
+          ],
+          touchGrassChallenge: 'Step outside into the daylight and photograph a living wild plant or tree leaf from 1 foot away!',
+          modelUsed: `${usedVisionModel || selectedModel} (Optical Filter)`,
+          inferenceTimeMs: Math.round(performance.now() - startTime),
+          isMockFallback: true,
+        };
+      }
+
+      // If vision model returned empty (e.g. timed out) and no hint was provided:
       if (!visualDescription && !speciesHint) {
-        // Fall back gracefully to botanical specimen analysis rather than rejecting as synthetic
-        const fallback = generateGenericBotanicalResult(
-          undefined,
-          `${selectedModel} (Local Botanical Engine)`,
-          true
-        );
-        fallback.ecologicalRole = 'Specimen image received. For deeper taxonomic precision on local CPU models, enter a quick visual cue (e.g. "lotus", "yellow petal", "fern") in the Species Hint field below.';
-        return fallback;
+        return {
+          commonName: 'Unverified Subject (No Flora Confirmed)',
+          scientificName: 'Unconfirmed / Pending Botanical Inspection',
+          family: 'Unverified / Potential Non-Flora',
+          nativeStatus: 'Non-Living / Synthetic',
+          conservationStatus: 'Data Deficient',
+          confidence: 25.0,
+          ecologicalRole: 'Living botanical foliage, petal structures, or chlorophyll could not be verified in this photograph. If this is a personal portrait, vehicle, screen, or indoor object, step outside into nature to photograph real flora! If this is a living plant, provide a short clue in the Species Hint field below to guide the model.',
+          sunlightNeeds: 'Requires natural living habitat',
+          soilMoisture: 'Requires natural soil',
+          bloomSeason: 'Unknown',
+          foragingSafety: {
+            isEdible: false,
+            cautionNote: 'Subject could not be reliably verified as edible flora.',
+          },
+          keyIdentificationFeatures: [
+            'No conclusive botanical foliage or petal structures verified',
+            'Ensure the camera is focused closely on living leaves or flowers in outdoor daylight',
+            'Provide an optional species clue below if testing a known wildflower'
+          ],
+          touchGrassChallenge: 'Step outside into natural daylight and photograph a living wild leaf or flower from 1 foot away!',
+          modelUsed: `${usedVisionModel || selectedModel} (Botanical Filter)`,
+          inferenceTimeMs: Math.round(performance.now() - startTime),
+          isMockFallback: true,
+        };
       }
     }
 
