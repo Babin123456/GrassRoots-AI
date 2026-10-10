@@ -377,7 +377,7 @@ export async function analyzePlantSpecimen(params: {
     };
   }
 
-  // Handle uploaded file or general prompt
+  // Handle uploaded file or general prompt with Two-Stage Vision + Reasoning Pipeline
   try {
     let imageBase64: string | undefined;
     if (params.imageFile) {
@@ -385,7 +385,6 @@ export async function analyzePlantSpecimen(params: {
         const reader = new FileReader();
         reader.onload = () => {
           const res = reader.result as string;
-          // Strip prefix data:image/...;base64,
           const base64Data = res.split(',')[1] || res;
           resolve(base64Data);
         };
@@ -394,19 +393,70 @@ export async function analyzePlantSpecimen(params: {
       });
     }
 
+    let visualDescription = '';
+    let usedVisionModel = '';
+
+    // STAGE 1: If an image is provided, probe if a vision model (moondream, llava, minicpm-v) is available in Ollama
+    if (imageBase64) {
+      const status = await checkOllamaStatus(config.endpoint);
+      const visionCandidate = status.models.find(m =>
+        m.includes('moondream') || m.includes('llava') || m.includes('minicpm-v') || m.includes('vision')
+      );
+
+      if (visionCandidate) {
+        try {
+          const visionRes = await fetch(`${config.endpoint.replace(/\/$/, '')}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: visionCandidate,
+              prompt: 'Briefly identify and describe the primary subject of this image in 1 or 2 concise sentences. Be specific about whether it is a plant, animal, person, food, or non-botanical object.',
+              stream: false,
+              images: [imageBase64],
+            }),
+          });
+          if (visionRes.ok) {
+            const visionData = await visionRes.json();
+            visualDescription = visionData.response?.trim() || '';
+            usedVisionModel = visionCandidate;
+          }
+        } catch {
+          // If vision model request fails, continue to language stage
+        }
+      }
+    }
+
+    // STAGE 2: Deep Botanical Reasoning via Gemma 2 / Selected Language Model
+    let reasoningPrompt = '';
+    if (visualDescription) {
+      reasoningPrompt = `A local vision model (${usedVisionModel}) inspected an uploaded image and describes it as: "${visualDescription}". Context hint: "${speciesHint || 'None'}".
+Your task:
+1. If the subject is clearly NOT a plant, fungus, or natural ecosystem element (e.g. it is a domestic pet like a cat/dog, indoor furniture, electronic device, clothing):
+   Set "commonName" to the real object name (e.g. "Domestic Cat", "Apparel / T-Shirt"), "scientificName" to its taxonomy or N/A, "nativeStatus" to "Unknown", "confidence" to 99, "ecologicalRole" to "Non-botanical subject detected. Please step outdoors to explore living flora and fauna!", and provide a gentle "touchGrassChallenge" encouraging outdoor nature exploration.
+2. If it IS a plant, wildflower, tree, or wildlife specimen:
+   Perform full botanical analysis with binomial nomenclature, family, nativeStatus (Native/Non-Native Naturalized/Invasive), ecologicalRole, foragingSafety, keyIdentificationFeatures, and touchGrassChallenge.
+Format strictly as JSON.`;
+    } else {
+      reasoningPrompt = `Analyze this plant / outdoor specimen: "${speciesHint || 'Specimen in the field'}". Return botanical analysis as JSON. If the subject is not plant matter or natural habitat fauna, indicate so clearly. Provide fields: commonName, scientificName, family, nativeStatus, confidence, ecologicalRole, foragingSafety, keyIdentificationFeatures, and touchGrassChallenge.`;
+    }
+
     const liveResult = await queryOllamaVisionOrText({
       endpoint: config.endpoint,
       model: selectedModel,
-      prompt: `Analyze this plant / outdoor specimen: "${speciesHint || 'Specimen in the field'}". Return botanical analysis as JSON. If the image is not a plant, flower, fungus, or natural ecosystem element, indicate that in commonName and ecologicalRole. Provide fields: commonName, scientificName, family, nativeStatus, confidence, ecologicalRole, foragingSafety, keyIdentificationFeatures, and touchGrassChallenge.`,
+      prompt: reasoningPrompt,
       temperature: config.temperature,
-      imageBase64,
+      imageBase64: visualDescription ? undefined : imageBase64, // pass raw image directly if no separate vision model was found
       timeoutMs: 60000,
     });
 
     if (liveResult) {
+      const modelTag = usedVisionModel
+        ? `${usedVisionModel} (Vision) + ${selectedModel} (Reasoning)`
+        : selectedModel;
+
       return {
         ...liveResult,
-        modelUsed: selectedModel,
+        modelUsed: modelTag,
         inferenceTimeMs: Math.round(performance.now() - startTime),
         isMockFallback: false,
       } as PlantAnalysisResult;
