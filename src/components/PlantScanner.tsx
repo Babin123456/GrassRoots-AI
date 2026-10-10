@@ -415,7 +415,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
         <div className="lg:col-span-7 space-y-5">
           {analyzing ? (
             /* Active Neural Thinking State synchronized with the left scanner */
-            <div className="rounded-3xl glass-card border-2 border-emerald-500/40 p-4 sm:p-6 sm:p-8 space-y-6 shadow-2xl shadow-emerald-950/70 relative overflow-hidden bg-[#0c1611]/90 backdrop-blur-xl animate-fade-in">
+            <div className="rounded-3xl glass-card border-2 border-emerald-500/40 p-4 sm:p-6 md:p-8 space-y-6 shadow-2xl shadow-emerald-950/70 relative overflow-hidden bg-[#0c1611]/90 backdrop-blur-xl animate-fade-in">
               {/* Shimmer / ambient background glow */}
               <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
               <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-green-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -545,7 +545,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
 
             </div>
           ) : result ? (
-            <div className="rounded-3xl glass-card border border-emerald-500/30 p-4 sm:p-6 sm:p-8 space-y-6 shadow-2xl shadow-emerald-950/50 relative overflow-hidden">
+            <div className="rounded-3xl glass-card border border-emerald-500/30 p-4 sm:p-6 md:p-8 space-y-6 shadow-2xl shadow-emerald-950/50 relative overflow-hidden">
               
               {/* Top ambient banner */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
