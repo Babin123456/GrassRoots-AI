@@ -519,19 +519,25 @@ export async function analyzePlantSpecimen(params: {
       );
 
       if (visionCandidate) {
+        let visionTimedOut = false;
         try {
           const visionController = new AbortController();
-          const visionTimeout = setTimeout(() => visionController.abort(), 20000);
+          // Allow 60s for local CPU runner initialization and inference
+          const visionTimeout = setTimeout(() => {
+            visionTimedOut = true;
+            visionController.abort();
+          }, 60000);
           const visionRes = await fetch(`${config.endpoint.replace(/\/$/, '')}/api/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model: visionCandidate,
-              prompt: 'Is the subject in this image a real living plant, flower, or tree? Or is it a non-plant object, digital illustration, screen, book, human, or electronic item? Describe what you see in 1 or 2 concise sentences.',
+              prompt: 'Identify what plant, flower, leaf, or subject is shown in this image. State the flower or leaf shape, colors, and species type in 1 concise sentence. If clearly not a plant or nature (e.g. computer, car, screenshot), state what it is.',
               stream: false,
               images: [imageBase64],
+              keep_alive: '15m',
               options: {
-                num_predict: 60,
+                num_predict: 45,
                 temperature: 0.1,
               },
             }),
@@ -550,7 +556,7 @@ export async function analyzePlantSpecimen(params: {
 
       // Check if explicitly non-flora or non-botanical graphic
       const nonBotanicalPattern = /brain|book|digital|graphic|illustration|render|screen|computer|neon|artificial|not a plant|non-plant|human|person|car|room|device|gadget|drawing|symbol|icon/i;
-      const isExplicitlyNonFlora = nonBotanicalPattern.test(visualDescription);
+      const isExplicitlyNonFlora = visualDescription ? nonBotanicalPattern.test(visualDescription) : false;
 
       if (isExplicitlyNonFlora) {
         return {
@@ -580,33 +586,17 @@ export async function analyzePlantSpecimen(params: {
         };
       }
 
-      // If vision model returned empty (e.g. unrecognizable or timed out) and no hint was typed:
+      // If vision model was unavailable or timed out on CPU, do not falsely declare a real plant as "non-living"!
+      // Instead, proceed to Stage 2 reasoning or high-fidelity fallback.
       if (!visualDescription && !speciesHint) {
-        return {
-          commonName: 'Unverified Subject (No Flora Detected)',
-          scientificName: 'Non-Flora / Unconfirmed',
-          family: 'Unclassified / Non-Botanical',
-          nativeStatus: 'Non-Living / Synthetic',
-          conservationStatus: 'Data Deficient',
-          confidence: 20.0,
-          ecologicalRole: 'The local vision model could not confirm living plant organs (leaf margins, petals, stem, or chlorophyll). If this is a digital screenshot, graphic, or indoor object, step outdoors to photograph real flora! If this is a wild plant, add a hint in the Species Hint field below to guide the model.',
-          sunlightNeeds: 'Requires natural living habitat',
-          soilMoisture: 'Requires natural soil',
-          bloomSeason: 'Unknown',
-          foragingSafety: {
-            isEdible: false,
-            cautionNote: 'Subject could not be reliably verified as edible flora.',
-          },
-          keyIdentificationFeatures: [
-            'No conclusive botanical foliage or petal structures verified',
-            'Ensure photos are focused closely on living leaves or flowers in outdoor daylight',
-            'Provide an optional species clue below if testing a known wildflower'
-          ],
-          touchGrassChallenge: 'Step outside into natural daylight and photograph a living leaf from 1 foot away with clear focus on the leaf margins.',
-          modelUsed: `${usedVisionModel || selectedModel} (Safety Filter)`,
-          inferenceTimeMs: Math.round(performance.now() - startTime),
-          isMockFallback: false,
-        };
+        // Fall back gracefully to botanical specimen analysis rather than rejecting as synthetic
+        const fallback = generateGenericBotanicalResult(
+          undefined,
+          `${selectedModel} (Local Botanical Engine)`,
+          true
+        );
+        fallback.ecologicalRole = 'Specimen image received. For deeper taxonomic precision on local CPU models, enter a quick visual cue (e.g. "lotus", "yellow petal", "fern") in the Species Hint field below.';
+        return fallback;
       }
     }
 
@@ -724,7 +714,7 @@ async function queryOllamaVisionOrText(opts: {
 }): Promise<Partial<PlantAnalysisResult> | null> {
   const url = `${opts.endpoint.replace(/\/$/, '')}/api/generate`;
   const controller = new AbortController();
-  const timeoutMs = opts.timeoutMs || 30000; // 30s timeout to prevent long hanging
+  const timeoutMs = opts.timeoutMs || 50000; // 50s timeout to allow local CPU runner inference
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -732,6 +722,7 @@ async function queryOllamaVisionOrText(opts: {
       model: opts.model,
       prompt: `${opts.prompt}\nFormat strictly as a JSON object with fields: commonName, scientificName, family, nativeStatus, confidence (1-100), ecologicalRole, sunlightNeeds, soilMoisture, bloomSeason, touchGrassChallenge, keyIdentificationFeatures (array of strings).`,
       stream: false,
+      keep_alive: '15m',
       options: {
         temperature: opts.temperature,
         num_predict: 220,
