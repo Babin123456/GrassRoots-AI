@@ -87,6 +87,7 @@ export function App() {
   };
 
   const [selectedSpecimenId, setSelectedSpecimenId] = useState<string | undefined>(undefined);
+  const [scannerAnalyzing, setScannerAnalyzing] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#070b09] text-emerald-50 selection:bg-emerald-500/30 selection:text-emerald-200">
@@ -98,42 +99,44 @@ export function App() {
         ollamaOnline={ollamaOnline}
         ollamaConfig={ollamaConfig}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        scannerAnalyzing={scannerAnalyzing}
       />
 
-      {/* Main Container */}
+      {/* Main Container with Persistent Tab Mounting */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 w-full">
-        {activeTab === 'scanner' && (
+        <div className={activeTab === 'scanner' ? 'block' : 'hidden'}>
           <PlantScanner
             ollamaConfig={ollamaConfig}
             ollamaOnline={ollamaOnline}
             onLogObservation={handleAddObservation}
             initialSpecimenId={selectedSpecimenId}
+            onAnalyzingChange={setScannerAnalyzing}
           />
-        )}
+        </div>
 
-        {activeTab === 'trails' && (
+        <div className={activeTab === 'trails' ? 'block' : 'hidden'}>
           <TrailAdvisor
             ollamaConfig={ollamaConfig}
           />
-        )}
+        </div>
 
-        {activeTab === 'journal' && (
+        <div className={activeTab === 'journal' ? 'block' : 'hidden'}>
           <FieldJournal
             observations={observations}
             onAddObservation={handleAddObservation}
             onDeleteObservation={handleDeleteObservation}
             onClearAll={handleClearObservations}
           />
-        )}
+        </div>
 
-        {activeTab === 'fieldguide' && (
+        <div className={activeTab === 'fieldguide' ? 'block' : 'hidden'}>
           <FieldGuide
             onInspectInScanner={(specimenId) => {
               setSelectedSpecimenId(specimenId);
               setActiveTab('scanner');
             }}
           />
-        )}
+        </div>
       </main>
 
       {/* Ollama Settings Modal */}
