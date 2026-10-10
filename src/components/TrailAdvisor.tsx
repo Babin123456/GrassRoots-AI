@@ -222,7 +222,7 @@ export const TrailAdvisor: React.FC<TrailAdvisorProps> = ({
 
       {/* Generated Trail Display */}
       {trail && (
-        <div className="rounded-3xl glass-card border border-emerald-500/30 p-4 sm:p-6 sm:p-8 space-y-8 relative overflow-hidden">
+        <div className="rounded-3xl glass-card border border-emerald-500/30 p-4 sm:p-6 md:p-8 space-y-8 relative overflow-hidden">
           
           {/* Top subtle badge & actions */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-emerald-500/20">
