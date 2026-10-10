@@ -329,7 +329,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
             </div>
 
             {/* Dropzone / Upload Action Buttons */}
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-col sm:flex-row gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -347,7 +347,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
               <button
                 onClick={() => runAnalysis(selectedFile ? '' : activeSampleId, selectedFile)}
                 disabled={analyzing}
-                className="py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-950/60 border border-emerald-400/40 transition-all disabled:opacity-50"
+                className="py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60 border border-emerald-400/40 transition-all disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
                 <span>Re-Analyze</span>
@@ -366,7 +366,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-3 gap-2">
               {SAMPLE_SPECIMENS.map((specimen) => (
                 <button
                   key={specimen.id}
@@ -415,7 +415,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
         <div className="lg:col-span-7 space-y-5">
           {analyzing ? (
             /* Active Neural Thinking State synchronized with the left scanner */
-            <div className="rounded-3xl glass-card border-2 border-emerald-500/40 p-6 sm:p-8 space-y-6 shadow-2xl shadow-emerald-950/70 relative overflow-hidden bg-[#0c1611]/90 backdrop-blur-xl animate-fade-in">
+            <div className="rounded-3xl glass-card border-2 border-emerald-500/40 p-4 sm:p-6 sm:p-8 space-y-6 shadow-2xl shadow-emerald-950/70 relative overflow-hidden bg-[#0c1611]/90 backdrop-blur-xl animate-fade-in">
               {/* Shimmer / ambient background glow */}
               <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
               <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-green-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -545,7 +545,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
 
             </div>
           ) : result ? (
-            <div className="rounded-3xl glass-card border border-emerald-500/30 p-6 sm:p-8 space-y-6 shadow-2xl shadow-emerald-950/50 relative overflow-hidden">
+            <div className="rounded-3xl glass-card border border-emerald-500/30 p-4 sm:p-6 sm:p-8 space-y-6 shadow-2xl shadow-emerald-950/50 relative overflow-hidden">
               
               {/* Top ambient banner */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
