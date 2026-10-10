@@ -229,8 +229,66 @@ BOTANICAL_SPECIMEN_KNOWLEDGE['honeybee'] = BOTANICAL_SPECIMEN_KNOWLEDGE['bee'];
 BOTANICAL_SPECIMEN_KNOWLEDGE['reishi-mushroom'] = BOTANICAL_SPECIMEN_KNOWLEDGE['reishi'];
 BOTANICAL_SPECIMEN_KNOWLEDGE['white-oak'] = BOTANICAL_SPECIMEN_KNOWLEDGE['oak'];
 
+// Preprocess user uploaded image to max 512x512 JPEG for rapid, robust local vision inference
+async function preprocessImageFile(file: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const res = reader.result as string;
+        resolve(res.split(',')[1] || res);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 512;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, width);
+        canvas.height = Math.max(1, height);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          const res = reader.result as string;
+          resolve(res.split(',')[1] || res);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve(jpegDataUrl.split(',')[1] || jpegDataUrl);
+      };
+      img.onerror = () => {
+        const res = reader.result as string;
+        resolve(res.split(',')[1] || res);
+      };
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // Generic heuristic generator when unknown image or prompt is supplied
-function generateGenericBotanicalResult(speciesHint?: string, modelName: string = 'Gemma 2 (9B)'): PlantAnalysisResult {
+function generateGenericBotanicalResult(
+  speciesHint?: string,
+  modelName: string = 'Gemma 2 (9B)',
+  hasUploadedFile: boolean = false
+): PlantAnalysisResult {
   const isOak = speciesHint?.toLowerCase().includes('tree') || speciesHint?.toLowerCase().includes('oak');
   const isMushroom = speciesHint?.toLowerCase().includes('fung') || speciesHint?.toLowerCase().includes('mushroom');
 
@@ -291,7 +349,37 @@ function generateGenericBotanicalResult(speciesHint?: string, modelName: string 
     };
   }
 
-  // Default to native golden wildflower
+  // If a custom image was uploaded and no botanical match was found
+  if (hasUploadedFile) {
+    return {
+      commonName: 'Unverified Specimen (Botanical Clue Needed)',
+      scientificName: 'Botanica incognita / Non-Flora',
+      family: 'Unclassified / Non-Botanical',
+      nativeStatus: 'Unknown',
+      conservationStatus: 'Data Deficient',
+      confidence: 28.0,
+      ecologicalRole: 'The local model could not confirm distinct botanical organs (leaf venation, petals, stem, or bark). If this is a digital illustration or synthetic subject, step outside into nature to photograph real flora! If this is a wild plant, add a hint in the Species Hint field below (e.g. "yellow wildflower", "pine needle", "fern frond") to guide Gemma 2.',
+      sunlightNeeds: 'Requires field verification',
+      soilMoisture: 'Requires field verification',
+      bloomSeason: 'Unknown',
+      foragingSafety: {
+        isEdible: false,
+        cautionNote: 'DO NOT INGEST. Subject could not be reliably identified as edible flora.',
+        lookalikesWarning: 'Always verify wild species with regional botanical references before contact.',
+      },
+      keyIdentificationFeatures: [
+        'No conclusive botanical leaf margins or floral reproductive organs confirmed',
+        'Provide a descriptive clue in the Species Hint input below to assist Gemma 2',
+        'Ensure outdoor field photos are well-lit with natural sunshine and focused on leaf details'
+      ],
+      touchGrassChallenge: 'Step outside into natural daylight and photograph a living leaf from 1 foot away with sharp focus on the leaf margins.',
+      modelUsed: modelName,
+      inferenceTimeMs: 400,
+      isMockFallback: true,
+    };
+  }
+
+  // Default to native golden wildflower for preset reference
   return {
     commonName: 'California Poppy',
     scientificName: 'Eschscholzia californica',
@@ -331,8 +419,8 @@ export async function analyzePlantSpecimen(params: {
   const startTime = performance.now();
   const selectedModel = config.customModelName.trim() || config.model;
 
-  // If sampleKey is provided and matches known sample database, check key
-  if (sampleKey && BOTANICAL_SPECIMEN_KNOWLEDGE[sampleKey]) {
+  // If user uploaded an imageFile, that MUST take precedence over preset sampleKey!
+  if (!params.imageFile && sampleKey && BOTANICAL_SPECIMEN_KNOWLEDGE[sampleKey]) {
     const matched = BOTANICAL_SPECIMEN_KNOWLEDGE[sampleKey];
     // Attempt Ollama live inference if online
     try {
@@ -381,16 +469,7 @@ export async function analyzePlantSpecimen(params: {
   try {
     let imageBase64: string | undefined;
     if (params.imageFile) {
-      imageBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const res = reader.result as string;
-          const base64Data = res.split(',')[1] || res;
-          resolve(base64Data);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(params.imageFile as File);
-      });
+      imageBase64 = await preprocessImageFile(params.imageFile);
     }
 
     let visualDescription = '';
@@ -410,7 +489,7 @@ export async function analyzePlantSpecimen(params: {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model: visionCandidate,
-              prompt: 'Briefly identify and describe the primary subject of this image in 1 or 2 concise sentences. Be specific about whether it is a plant, animal, person, food, or non-botanical object.',
+              prompt: 'What is the primary subject in this image? Describe what you see in 1 or 2 concise sentences. Explicitly state if this is a plant, flower, tree, animal, digital art rendering, cybernetic graphic, computer screen, or household object.',
               stream: false,
               images: [imageBase64],
             }),
@@ -431,9 +510,11 @@ export async function analyzePlantSpecimen(params: {
     if (visualDescription) {
       reasoningPrompt = `A local vision model (${usedVisionModel}) inspected an uploaded image and describes it as: "${visualDescription}". Context hint: "${speciesHint || 'None'}".
 Your task:
-1. If the subject is clearly NOT a plant, fungus, or natural ecosystem element (e.g. it is a domestic pet like a cat/dog, indoor furniture, electronic device, clothing):
-   Set "commonName" to the real object name (e.g. "Domestic Cat", "Apparel / T-Shirt"), "scientificName" to its taxonomy or N/A, "nativeStatus" to "Unknown", "confidence" to 99, "ecologicalRole" to "Non-botanical subject detected. Please step outdoors to explore living flora and fauna!", and provide a gentle "touchGrassChallenge" encouraging outdoor nature exploration.
-2. If it IS a plant, wildflower, tree, or wildlife specimen:
+1. NON-BOTANICAL / NON-FLORA CHECK:
+   If the subject is clearly NOT a plant, flower, tree, fungus, or natural ecosystem pollinator (e.g. it is a digital art rendering, cybernetic brain, electronic device, car, cat/dog, indoor furniture, person):
+   Set "commonName" to what it actually is (e.g. "Digital Brain Illustration / Synthetic Graphic" or "Domestic Animal"), "scientificName" to "Non-Flora / Artificial Subject", "family" to "Synthetic / Non-Botanical", "nativeStatus" to "Non-Living / Synthetic", "confidence" to 15, "ecologicalRole" to "Non-botanical subject detected. GrassRoots AI is an offline flora explorer designed to help you disconnect from digital screens and explore living plants and soil!", and provide a gentle "touchGrassChallenge" encouraging stepping outside into nature.
+2. FLORA CHECK:
+   If it IS a plant, wildflower, tree, or wildlife specimen:
    Perform full botanical analysis with binomial nomenclature, family, nativeStatus (Native/Non-Native Naturalized/Invasive), ecologicalRole, foragingSafety, keyIdentificationFeatures, and touchGrassChallenge.
 Format strictly as JSON.`;
     } else {
@@ -466,8 +547,7 @@ Format strictly as JSON.`;
   }
 
   // Heuristic fallback
-  const fallback = generateGenericBotanicalResult(speciesHint, `${selectedModel} (Local Heuristics Engine)`);
-  fallback.inferenceTimeMs = Math.round(performance.now() - startTime) + 380;
+  const fallback = generateGenericBotanicalResult(speciesHint, `${selectedModel} (Local Heuristics Engine)`, Boolean(params.imageFile));
   return fallback;
 }
 
