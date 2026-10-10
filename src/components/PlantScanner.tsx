@@ -156,6 +156,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
   const [thinkingStep, setThinkingStep] = useState<number>(0);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isAnalyzingRef = useRef<boolean>(false);
 
   // Synchronize thinking timer and steps while analyzing
   React.useEffect(() => {
@@ -174,6 +175,8 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
 
   // Trigger analysis
   const runAnalysis = async (sampleKey?: string, file?: File | null) => {
+    if (isAnalyzingRef.current) return;
+    isAnalyzingRef.current = true;
     setThinkingStep(0);
     setElapsedSeconds(0);
     setAnalyzing(true);
@@ -192,6 +195,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
     } catch (err) {
       console.error(err);
     } finally {
+      isAnalyzingRef.current = false;
       setAnalyzing(false);
     }
   };
