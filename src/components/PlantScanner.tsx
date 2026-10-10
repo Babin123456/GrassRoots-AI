@@ -15,7 +15,11 @@ import {
   Clock,
   Check,
   Zap,
-  Leaf
+  Leaf,
+  Eye,
+  Cpu,
+  Compass,
+  Layers
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { PlantAnalysisResult, OllamaConfig, ObservationLog } from '../types';
@@ -35,6 +39,29 @@ interface SampleSpecimen {
   category: string;
   image: string;
 }
+
+const THINKING_STAGES = [
+  {
+    icon: Eye,
+    title: 'Visual Feature Extraction',
+    detail: 'Scanning leaf morphology, petal geometry, and venation patterns...',
+  },
+  {
+    icon: Cpu,
+    title: 'Neural Botanical Reasoning',
+    detail: 'Consulting local open-weight model for taxonomic hierarchy and binomial nomenclature...',
+  },
+  {
+    icon: Compass,
+    title: 'Ecosystem & Habitat Mapping',
+    detail: 'Cross-referencing native regional biomes, moisture profiles, and soil needs...',
+  },
+  {
+    icon: Sparkles,
+    title: 'Synthesizing "Touch Grass" Prompt',
+    detail: 'Formulating sensory field observation challenge and foraging safety advisory...',
+  },
+];
 
 const SAMPLE_SPECIMENS: SampleSpecimen[] = [
   {
@@ -126,10 +153,29 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
   const [analyzing, setAnalyzing] = useState<boolean>(false);
   const [result, setResult] = useState<PlantAnalysisResult | null>(null);
   const [loggedSuccess, setLoggedSuccess] = useState<boolean>(false);
+  const [thinkingStep, setThinkingStep] = useState<number>(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Synchronize thinking timer and steps while analyzing
+  React.useEffect(() => {
+    if (!analyzing) return;
+    const timer = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    const stepTimer = setInterval(() => {
+      setThinkingStep(prev => (prev + 1) % 4);
+    }, 1500);
+    return () => {
+      clearInterval(timer);
+      clearInterval(stepTimer);
+    };
+  }, [analyzing]);
 
   // Trigger analysis
   const runAnalysis = async (sampleKey?: string, file?: File | null) => {
+    setThinkingStep(0);
+    setElapsedSeconds(0);
     setAnalyzing(true);
     setLoggedSuccess(false);
 
@@ -248,14 +294,17 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
 
               {/* Scanning Laser Beam overlay when analyzing */}
               {analyzing && (
-                <div className="absolute inset-0 bg-emerald-950/40 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
+                <div className="absolute inset-0 bg-emerald-950/50 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
                   {/* Moving laser bar */}
                   <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_15px_#34d399] animate-pulse"></div>
-                  <div className="p-4 rounded-2xl bg-[#0c1611]/90 border border-emerald-400/40 shadow-xl flex items-center gap-3">
-                    <RefreshCw className="w-5 h-5 text-emerald-400 animate-spin" />
-                    <div className="text-left">
+                  <div className="p-4 rounded-2xl bg-[#0c1611]/95 border border-emerald-400/50 shadow-2xl flex items-center gap-3 max-w-[85%]">
+                    <RefreshCw className="w-5 h-5 text-emerald-400 animate-spin shrink-0" />
+                    <div className="text-left overflow-hidden">
                       <p className="text-xs font-bold text-white">Open-Weight Inference</p>
-                      <p className="text-[10px] text-emerald-300 font-mono">Running {ollamaConfig.model}...</p>
+                      <p className="text-[10px] text-emerald-300 font-mono flex items-center gap-1.5 truncate">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+                        <span className="truncate">{THINKING_STAGES[thinkingStep].title}</span>
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -364,7 +413,138 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
 
         {/* Right Column: Identification & Botanical Intelligence Report */}
         <div className="lg:col-span-7 space-y-5">
-          {result ? (
+          {analyzing ? (
+            /* Active Neural Thinking State synchronized with the left scanner */
+            <div className="rounded-3xl glass-card border-2 border-emerald-500/40 p-6 sm:p-8 space-y-6 shadow-2xl shadow-emerald-950/70 relative overflow-hidden bg-[#0c1611]/90 backdrop-blur-xl animate-fade-in">
+              {/* Shimmer / ambient background glow */}
+              <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
+              <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-green-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Header: Synchronized thinking indicator */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-emerald-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-700 text-white shadow-lg shadow-emerald-950/60 border border-emerald-400/40">
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-[#0c1611]"></span>
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-extrabold text-white font-display tracking-tight">
+                        Analyzing Specimen...
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+                        {ollamaConfig.customModelName || ollamaConfig.model}
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-400/80">
+                      Syncing visual input with local open-weight ecological reasoning
+                    </p>
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/50 border border-emerald-500/30 text-xs font-mono text-emerald-300 self-start sm:self-auto shadow-inner">
+                  <Clock className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                  <span>{elapsedSeconds}s elapsed</span>
+                </div>
+              </div>
+
+              {/* Central Synchronized Thinking Pipeline */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5">
+                    <Cpu className="w-4 h-4 text-emerald-400 animate-pulse" />
+                    <span>Neural Pipeline Execution</span>
+                  </span>
+                  <span className="text-[11px] font-mono text-emerald-400/70 lowercase">
+                    stage {thinkingStep + 1} of 4
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2.5">
+                  {THINKING_STAGES.map((stage, idx) => {
+                    const StageIcon = stage.icon;
+                    const isActive = thinkingStep === idx;
+                    const isPassed = thinkingStep > idx;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3.5 rounded-2xl border transition-all duration-300 flex items-start gap-3.5 ${
+                          isActive
+                            ? 'bg-emerald-950/80 border-emerald-400/60 shadow-lg shadow-emerald-950/60 ring-1 ring-emerald-400/30 scale-[1.01]'
+                            : isPassed
+                            ? 'bg-black/40 border-emerald-500/30 text-emerald-300/80'
+                            : 'bg-black/20 border-emerald-500/10 opacity-60 text-emerald-400/50'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-xl shrink-0 transition-colors ${
+                          isActive
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 animate-pulse'
+                            : isPassed
+                            ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-black/40 text-emerald-500/40 border border-emerald-500/10'
+                        }`}>
+                          <StageIcon className={`w-4 h-4 ${isActive ? 'animate-bounce' : ''}`} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className={`text-xs font-bold ${isActive ? 'text-white' : isPassed ? 'text-emerald-200' : 'text-emerald-400/70'}`}>
+                              {stage.title}
+                            </h4>
+                            {isActive && (
+                              <span className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 animate-pulse font-semibold">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                                Active Step
+                              </span>
+                            )}
+                            {isPassed && (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-emerald-300/70 mt-0.5 leading-relaxed">
+                            {stage.detail}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Shimmering Skeleton Preview of upcoming Botanical Intelligence */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between text-xs text-emerald-400/70 font-mono">
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                    Synthesizing Botanical Report
+                  </span>
+                  <span className="animate-pulse">Loading taxonomy tokens...</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="h-16 rounded-2xl bg-emerald-950/30 border border-emerald-500/15 animate-pulse relative overflow-hidden p-3 space-y-2">
+                    <div className="h-3 w-16 bg-emerald-500/20 rounded"></div>
+                    <div className="h-4 w-24 bg-emerald-500/10 rounded"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent -translate-x-full animate-shimmer"></div>
+                  </div>
+                  <div className="h-16 rounded-2xl bg-emerald-950/30 border border-emerald-500/15 animate-pulse relative overflow-hidden p-3 space-y-2">
+                    <div className="h-3 w-16 bg-emerald-500/20 rounded"></div>
+                    <div className="h-4 w-24 bg-emerald-500/10 rounded"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent -translate-x-full animate-shimmer"></div>
+                  </div>
+                  <div className="h-16 rounded-2xl bg-emerald-950/30 border border-emerald-500/15 animate-pulse relative overflow-hidden p-3 space-y-2">
+                    <div className="h-3 w-16 bg-emerald-500/20 rounded"></div>
+                    <div className="h-4 w-24 bg-emerald-500/10 rounded"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent -translate-x-full animate-shimmer"></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          ) : result ? (
             <div className="rounded-3xl glass-card border border-emerald-500/30 p-6 sm:p-8 space-y-6 shadow-2xl shadow-emerald-950/50 relative overflow-hidden">
               
               {/* Top ambient banner */}
