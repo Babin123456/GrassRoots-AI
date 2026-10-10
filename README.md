@@ -48,7 +48,7 @@ Rather than sending personal location coordinates and backyard photos to commerc
 ### 3. Community Grassroots Hub & Field Journal
 
 - **Field Observation Logger**: Save discoveries with timestamps, location pins, and custom tags into local persistent storage.
-- **Achievement Badges**: Track outdoor milestones (*Flora Scout*, *Pollinator Ally*, *Fungi Whisperer*, *Touch Grass Streak*).
+- **Achievement Badges**: Track outdoor milestones (*Flora Scout*, *Pollinator Ally*, *Fungi Whisperer*, *Botanical Chronicler*).
 - **Community Summary Exporter**: Generates formatted Markdown summaries formatted for instant posting to DEV, iNaturalist, or local park forums.
 
 ### 4. Offline Field Guide & Knowledge Base
@@ -86,11 +86,14 @@ graph TD
 GrassRoots AI interfaces with your local Ollama daemon via clean REST endpoints:
 
 ```bash
-# Pull and serve Gemma 2
-ollama run gemma2:9b
+# Pull vision model for pixel analysis
+ollama pull moondream
+
+# Pull Gemma 2 for deep botanical taxonomy & ecological reasoning
+ollama pull gemma2:9b
 
 # Or lightweight Gemma 2 (ideal for battery-saving laptop field work)
-ollama run gemma2:2b
+ollama pull gemma2:2b
 ```
 
 To enable web browser calls without CORS restrictions:
@@ -133,8 +136,8 @@ If Ollama is not installed or offline, GrassRoots AI **never displays a broken s
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/GrassRoots_AI.git
-cd GrassRoots_AI
+git clone https://github.com/Babin123456/GrassRoots-AI.git
+cd GrassRoots-AI
 
 # Install dependencies
 npm install
@@ -157,6 +160,7 @@ npm run build
 
 - **Challenge**: Hacktoberfest 2026 Week 1 ("Touch Grass" Theme)
 - **Target Category**: Gemma Track / Open-Source Local AI
+- **Repository**: [https://github.com/Babin123456/GrassRoots-AI](https://github.com/Babin123456/GrassRoots-AI)
 - **License**: MIT Permissive License
 
 ---
