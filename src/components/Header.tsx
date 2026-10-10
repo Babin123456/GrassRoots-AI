@@ -163,42 +163,50 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Mobile Navigation bar */}
-        <div className="flex md:hidden overflow-x-auto py-2 gap-1.5 border-t border-emerald-500/10 no-scrollbar">
+        <div className="grid grid-cols-4 md:hidden py-2 gap-1 border-t border-emerald-500/10">
           <button
             onClick={() => setActiveTab('scanner')}
-            className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all ${
-              activeTab === 'scanner' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-300/80 bg-emerald-950/50'
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${
+              activeTab === 'scanner'
+                ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-sm border border-emerald-400/30'
+                : 'text-emerald-300/80 bg-emerald-950/40 hover:bg-emerald-900/40'
             }`}
           >
-            <Sparkles className="w-3 h-3 text-emerald-300" />
-            <span>Scanner</span>
+            <Sparkles className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+            <span className="truncate">Scanner</span>
           </button>
           <button
             onClick={() => setActiveTab('trails')}
-            className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all ${
-              activeTab === 'trails' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-300/80 bg-emerald-950/50'
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${
+              activeTab === 'trails'
+                ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-sm border border-emerald-400/30'
+                : 'text-emerald-300/80 bg-emerald-950/40 hover:bg-emerald-900/40'
             }`}
           >
-            <Compass className="w-3 h-3 text-emerald-300" />
-            <span>Trails</span>
+            <Compass className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+            <span className="truncate">Trails</span>
           </button>
           <button
             onClick={() => setActiveTab('journal')}
-            className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all ${
-              activeTab === 'journal' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-300/80 bg-emerald-950/50'
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${
+              activeTab === 'journal'
+                ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-sm border border-emerald-400/30'
+                : 'text-emerald-300/80 bg-emerald-950/40 hover:bg-emerald-900/40'
             }`}
           >
-            <BookOpen className="w-3 h-3 text-emerald-300" />
-            <span>Journal</span>
+            <BookOpen className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+            <span className="truncate">Journal</span>
           </button>
           <button
             onClick={() => setActiveTab('fieldguide')}
-            className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all ${
-              activeTab === 'fieldguide' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-300/80 bg-emerald-950/50'
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${
+              activeTab === 'fieldguide'
+                ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-sm border border-emerald-400/30'
+                : 'text-emerald-300/80 bg-emerald-950/40 hover:bg-emerald-900/40'
             }`}
           >
-            <Library className="w-3 h-3 text-emerald-300" />
-            <span>Guide</span>
+            <Library className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+            <span className="truncate">Guide</span>
           </button>
         </div>
 
