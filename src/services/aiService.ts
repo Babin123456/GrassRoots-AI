@@ -271,7 +271,7 @@ async function preprocessImageFile(file: File): Promise<string> {
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const maxDim = 512;
+        const maxDim = 384;
         let width = img.width;
         let height = img.height;
         if (width > maxDim || height > maxDim) {
@@ -520,24 +520,93 @@ export async function analyzePlantSpecimen(params: {
 
       if (visionCandidate) {
         try {
+          const visionController = new AbortController();
+          const visionTimeout = setTimeout(() => visionController.abort(), 20000);
           const visionRes = await fetch(`${config.endpoint.replace(/\/$/, '')}/api/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model: visionCandidate,
-              prompt: 'Describe this botanical specimen in rich visual detail. State the petal color, flower shape, central disc or seed pod, and leaves. What kind of wild plant or flower is this (for example: Sacred Lotus, Water Lily, Rose, Dandelion, Poppy, Sunflower, Fern)? If it is clearly not a plant, describe what object is shown.',
+              prompt: 'Is the subject in this image a real living plant, flower, or tree? Or is it a non-plant object, digital illustration, screen, book, human, or electronic item? Describe what you see in 1 or 2 concise sentences.',
               stream: false,
               images: [imageBase64],
+              options: {
+                num_predict: 60,
+                temperature: 0.1,
+              },
             }),
+            signal: visionController.signal,
           });
+          clearTimeout(visionTimeout);
           if (visionRes.ok) {
             const visionData = await visionRes.json();
             visualDescription = visionData.response?.trim() || '';
             usedVisionModel = visionCandidate;
           }
         } catch {
-          // If vision model request fails, continue to language stage
+          // If vision model request fails or times out
         }
+      }
+
+      // Check if explicitly non-flora or non-botanical graphic
+      const nonBotanicalPattern = /brain|book|digital|graphic|illustration|render|screen|computer|neon|artificial|not a plant|non-plant|human|person|car|room|device|gadget|drawing|symbol|icon/i;
+      const isExplicitlyNonFlora = nonBotanicalPattern.test(visualDescription);
+
+      if (isExplicitlyNonFlora) {
+        return {
+          commonName: 'Digital Graphic / Non-Botanical Subject',
+          scientificName: 'Non-Living / Synthetic Subject',
+          family: 'Synthetic / Non-Botanical',
+          nativeStatus: 'Non-Living / Synthetic',
+          conservationStatus: 'Non-Living',
+          confidence: 15.0,
+          ecologicalRole: `Non-botanical subject detected ("${visualDescription}"). GrassRoots AI is designed to help you disconnect from digital screens and explore living plants and soil outdoors!`,
+          sunlightNeeds: 'N/A — Non-living subject',
+          soilMoisture: 'N/A — Non-living subject',
+          bloomSeason: 'Non-flowering',
+          foragingSafety: {
+            isEdible: false,
+            cautionNote: 'Non-botanical object. Never ingest synthetic or non-plant objects.',
+          },
+          keyIdentificationFeatures: [
+            'Artificial or digital graphics detected',
+            'No living leaf venation, chlorophyll, or petal structures confirmed',
+            'Take a photo of living wild flora in natural sunlight to identify'
+          ],
+          touchGrassChallenge: 'Step away from computer screens and notice the fresh air, living soil, and trees outside!',
+          modelUsed: `${usedVisionModel || 'Vision Engine'} (Instant Filter)`,
+          inferenceTimeMs: Math.round(performance.now() - startTime),
+          isMockFallback: false,
+        };
+      }
+
+      // If vision model returned empty (e.g. unrecognizable or timed out) and no hint was typed:
+      if (!visualDescription && !speciesHint) {
+        return {
+          commonName: 'Unverified Subject (No Flora Detected)',
+          scientificName: 'Non-Flora / Unconfirmed',
+          family: 'Unclassified / Non-Botanical',
+          nativeStatus: 'Non-Living / Synthetic',
+          conservationStatus: 'Data Deficient',
+          confidence: 20.0,
+          ecologicalRole: 'The local vision model could not confirm living plant organs (leaf margins, petals, stem, or chlorophyll). If this is a digital screenshot, graphic, or indoor object, step outdoors to photograph real flora! If this is a wild plant, add a hint in the Species Hint field below to guide the model.',
+          sunlightNeeds: 'Requires natural living habitat',
+          soilMoisture: 'Requires natural soil',
+          bloomSeason: 'Unknown',
+          foragingSafety: {
+            isEdible: false,
+            cautionNote: 'Subject could not be reliably verified as edible flora.',
+          },
+          keyIdentificationFeatures: [
+            'No conclusive botanical foliage or petal structures verified',
+            'Ensure photos are focused closely on living leaves or flowers in outdoor daylight',
+            'Provide an optional species clue below if testing a known wildflower'
+          ],
+          touchGrassChallenge: 'Step outside into natural daylight and photograph a living leaf from 1 foot away with clear focus on the leaf margins.',
+          modelUsed: `${usedVisionModel || selectedModel} (Safety Filter)`,
+          inferenceTimeMs: Math.round(performance.now() - startTime),
+          isMockFallback: false,
+        };
       }
     }
 
@@ -572,8 +641,8 @@ Format strictly as JSON with keys: commonName, scientificName, family, nativeSta
       model: selectedModel,
       prompt: reasoningPrompt,
       temperature: config.temperature,
-      imageBase64: visualDescription ? undefined : imageBase64, // pass raw image directly if no separate vision model was found
-      timeoutMs: 120000,
+      imageBase64: visualDescription ? undefined : imageBase64,
+      timeoutMs: 30000,
     });
 
     if (liveResult) {
@@ -655,7 +724,7 @@ async function queryOllamaVisionOrText(opts: {
 }): Promise<Partial<PlantAnalysisResult> | null> {
   const url = `${opts.endpoint.replace(/\/$/, '')}/api/generate`;
   const controller = new AbortController();
-  const timeoutMs = opts.timeoutMs || 120000; // 120s to allow CPU execution without connection abort
+  const timeoutMs = opts.timeoutMs || 30000; // 30s timeout to prevent long hanging
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -665,6 +734,7 @@ async function queryOllamaVisionOrText(opts: {
       stream: false,
       options: {
         temperature: opts.temperature,
+        num_predict: 220,
       },
     };
 
