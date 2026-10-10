@@ -17,6 +17,7 @@ interface HeaderProps {
   ollamaOnline: boolean;
   ollamaConfig: OllamaConfig;
   onOpenSettings: () => void;
+  scannerAnalyzing?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   ollamaOnline,
   ollamaConfig,
   onOpenSettings,
+  scannerAnalyzing,
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-emerald-500/20 bg-[#070b09]/80 backdrop-blur-xl">
@@ -59,14 +61,20 @@ export const Header: React.FC<HeaderProps> = ({
           <nav className="hidden md:flex items-center space-x-1.5 p-1.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/20 backdrop-blur-md">
             <button
               onClick={() => setActiveTab('scanner')}
-              className={`flex items-center gap-2 px-3.5 lg:px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+              className={`flex items-center gap-2 px-3.5 lg:px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 relative ${
                 activeTab === 'scanner'
                   ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/30'
                   : 'text-emerald-300/80 hover:text-emerald-100 hover:bg-emerald-900/30'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+              <Sparkles className={`w-3.5 h-3.5 ${scannerAnalyzing ? 'animate-spin text-amber-300' : 'text-emerald-300'}`} />
               <span>Plant Scanner</span>
+              {scannerAnalyzing && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-mono border border-amber-400/30">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                  Active
+                </span>
+              )}
             </button>
 
             <button
@@ -166,13 +174,21 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="grid grid-cols-4 md:hidden py-2 gap-1 border-t border-emerald-500/10">
           <button
             onClick={() => setActiveTab('scanner')}
-            className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] sm:text-xs font-semibold transition-all relative ${
               activeTab === 'scanner'
                 ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-sm border border-emerald-400/30'
                 : 'text-emerald-300/80 bg-emerald-950/40 hover:bg-emerald-900/40'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+            <div className="relative">
+              <Sparkles className={`w-3.5 h-3.5 shrink-0 ${scannerAnalyzing ? 'animate-spin text-amber-300' : 'text-emerald-300'}`} />
+              {scannerAnalyzing && (
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+              )}
+            </div>
             <span className="truncate">Scanner</span>
           </button>
           <button
