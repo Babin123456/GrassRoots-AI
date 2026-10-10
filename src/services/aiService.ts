@@ -522,11 +522,11 @@ export async function analyzePlantSpecimen(params: {
         let visionTimedOut = false;
         try {
           const visionController = new AbortController();
-          // Allow 60s for local CPU runner initialization and inference
+          // Allow 90s for local CPU runner initialization and inference
           const visionTimeout = setTimeout(() => {
             visionTimedOut = true;
             visionController.abort();
-          }, 60000);
+          }, 90000);
           const visionRes = await fetch(`${config.endpoint.replace(/\/$/, '')}/api/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -537,7 +537,7 @@ export async function analyzePlantSpecimen(params: {
               images: [imageBase64],
               keep_alive: '15m',
               options: {
-                num_predict: 45,
+                num_predict: 35,
                 temperature: 0.1,
               },
             }),
@@ -631,8 +631,8 @@ Format strictly as JSON with keys: commonName, scientificName, family, nativeSta
       model: selectedModel,
       prompt: reasoningPrompt,
       temperature: config.temperature,
-      imageBase64: visualDescription ? undefined : imageBase64,
-      timeoutMs: 30000,
+      imageBase64: undefined, // Never send raw images to text reasoning models (Gemma 2 / Llama 3)
+      timeoutMs: 60000,
     });
 
     if (liveResult) {
@@ -729,7 +729,9 @@ async function queryOllamaVisionOrText(opts: {
       },
     };
 
-    if (opts.imageBase64) {
+    // Only pass images if an image exists AND the model is an Ollama vision-capable architecture
+    const isVisionCapableModel = /moondream|llava|minicpm-v|bakllava|vision/i.test(opts.model);
+    if (opts.imageBase64 && isVisionCapableModel) {
       payload.images = [opts.imageBase64];
     }
 
