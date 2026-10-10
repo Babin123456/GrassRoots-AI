@@ -19,13 +19,13 @@
 - [Zero-Breakage Offline Fallback Engine](#zero-breakage-offline-fallback-engine)
 - [Getting Started](#getting-started)
 - [DEV Challenge Submission Details](#dev-challenge-submission-details)
-- [Contributing & License](#contributing--license)
+- [Contributing](#contributing)
 
 ---
 
 ## Project Overview
 
-In an era saturated with screen-time, cognitive burnout, and remote work, **GrassRoots AI** was built for the **Hacktoberfest 2026 DEV Challenge ("Touch Grass" theme)**. 
+In an era saturated with screen-time, cognitive burnout, and remote work, **GrassRoots AI** was built for the **Hacktoberfest 2026 DEV Challenge ("Touch Grass" theme)**.
 
 Rather than sending personal location coordinates and backyard photos to commercial cloud servers, GrassRoots AI runs **100% locally on your machine**. Powered by open-weight models (**Gemma 2** and **Llama 3** via Ollama), users can identify plants, understand local mycorrhizal and pollinator ecosystems, generate guided outdoor nature walks, and maintain an offline field journal.
 
@@ -34,21 +34,25 @@ Rather than sending personal location coordinates and backyard photos to commerc
 ## Key Features
 
 ### 1. Offline Plant & Wildlife Identifier
+
 - **Interactive Scanner UI**: Upload field photos or try 1-click curated specimens (California Poppy, Maidenhair Fern, Western Honeybee, Dandelion, Stinging Nettle).
 - **Botanical Intelligence**: Returns botanical binomials, family, native vs. invasive classifications, sunlight and soil needs, and foraging safety cautions.
 - **"Touch Grass" Challenge**: Generates physical, sensory observation challenges for each identified specimen (e.g. observing leaf veins, feeling hydrophobic water tension, listening for pollinators).
 
 ### 2. Local Ecosystem & Trail Advisor
+
 - **Customized Excursion Generator**: Select from 6 distinct biomes (Deciduous Forest, Riparian Stream Banks, Urban Greenbelts, Coastal Meadows, Backyard Gardens) and custom durations (30 min to Half-Day).
 - **Interactive Checkpoints**: Step-by-step waypoints with target species checklists and mindful sensory prompts.
 - **Gear Kit & Leave No Trace Principles**: Pre-computed packing checklists and conservation guidelines.
 
 ### 3. Community Grassroots Hub & Field Journal
+
 - **Field Observation Logger**: Save discoveries with timestamps, location pins, and custom tags into local persistent storage.
 - **Achievement Badges**: Track outdoor milestones (*Flora Scout*, *Pollinator Ally*, *Fungi Whisperer*, *Touch Grass Streak*).
 - **Community Summary Exporter**: Generates formatted Markdown summaries formatted for instant posting to DEV, iNaturalist, or local park forums.
 
 ### 4. Offline Field Guide & Knowledge Base
+
 - Comprehensive encyclopedia of native flora, pollinators, and fungi.
 - Clear identification markers, ecological roles, and critical safety lookalike warnings.
 - Instant 1-click bridge to test drive species in the Scanner.
@@ -92,24 +96,28 @@ ollama run gemma2:2b
 To enable web browser calls without CORS restrictions:
 
 **PowerShell (Windows):**
+
 ```powershell
 $env:OLLAMA_ORIGINS="*"
 ollama serve
 ```
 
 **Command Prompt (cmd.exe):**
+
 ```cmd
 set OLLAMA_ORIGINS=*
 ollama serve
 ```
 
 **Bash / Zsh (macOS / Linux):**
+
 ```bash
 export OLLAMA_ORIGINS="*"
 ollama serve
 ```
 
 ### Zero-Breakage Offline Fallback Engine
+
 If Ollama is not installed or offline, GrassRoots AI **never displays a broken screen**. An integrated heuristic botanical knowledge base seamlessly serves instant classifications, ensuring full usability on trails with no cellular signal.
 
 ---
@@ -117,10 +125,12 @@ If Ollama is not installed or offline, GrassRoots AI **never displays a broken s
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js (v18+)
 - (Optional) [Ollama](https://ollama.com) with `gemma2:9b` or `gemma2:2b`
 
 ### Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/your-username/GrassRoots_AI.git
@@ -136,6 +146,7 @@ npm run dev
 Visit `http://localhost:5173` in your browser.
 
 ### Production Build
+
 ```bash
 npm run build
 ```
