@@ -222,12 +222,12 @@ export const TrailAdvisor: React.FC<TrailAdvisorProps> = ({
 
       {/* Generated Trail Display */}
       {trail && (
-        <div className="rounded-3xl glass-card border border-emerald-500/30 p-6 sm:p-8 space-y-8 relative overflow-hidden">
+        <div className="rounded-3xl glass-card border border-emerald-500/30 p-4 sm:p-6 sm:p-8 space-y-8 relative overflow-hidden">
           
           {/* Top subtle badge & actions */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-emerald-500/20">
             <div>
-              <div className="flex items-center gap-2.5 mb-2">
+              <div className="flex flex-wrap items-center gap-2.5 mb-2">
                 <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                   {trail.difficulty}
                 </span>
@@ -243,7 +243,7 @@ export const TrailAdvisor: React.FC<TrailAdvisorProps> = ({
               </h2>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <button
                 onClick={handleCopy}
                 className="px-3.5 py-2 rounded-xl bg-black/40 hover:bg-emerald-900/40 border border-emerald-500/30 text-emerald-200 text-xs font-semibold flex items-center gap-2 transition-all"
