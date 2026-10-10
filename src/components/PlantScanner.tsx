@@ -125,7 +125,7 @@ const SAMPLE_SPECIMENS: SampleSpecimen[] = [
 
 // Helper to normalize species ID between FieldGuide and Scanner
 function resolveSampleId(id?: string): string {
-  if (!id) return 'dandelion';
+  if (!id) return '';
   const map: Record<string, string> = {
     'california-poppy': 'poppy',
     'maidenhair-fern': 'fern',
@@ -145,12 +145,9 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
   initialSpecimenId,
   onAnalyzingChange,
 }) => {
-  const targetId = resolveSampleId(initialSpecimenId);
-  const initialSpecimen = SAMPLE_SPECIMENS.find(s => s.id === targetId) || SAMPLE_SPECIMENS[0];
-
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(initialSpecimen.image);
-  const [activeSampleId, setActiveSampleId] = useState<string>(initialSpecimen.id);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [activeSampleId, setActiveSampleId] = useState<string>('');
   const [speciesHintInput, setSpeciesHintInput] = useState<string>('');
   const [analyzing, setAnalyzing] = useState<boolean>(false);
   const [result, setResult] = useState<PlantAnalysisResult | null>(null);
@@ -183,6 +180,15 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
   // Trigger analysis
   const runAnalysis = async (sampleKey?: string, file?: File | null) => {
     if (isAnalyzingRef.current) return;
+
+    const targetFile = file !== undefined ? file : selectedFile;
+    const activeKey = targetFile ? undefined : (sampleKey !== undefined ? (sampleKey || undefined) : (activeSampleId || undefined));
+
+    // Guard against running with no input
+    if (!targetFile && !activeKey && !speciesHintInput.trim()) {
+      return;
+    }
+
     isAnalyzingRef.current = true;
     setThinkingStep(0);
     setElapsedSeconds(0);
@@ -190,8 +196,6 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
     setLoggedSuccess(false);
 
     try {
-      const targetFile = file !== undefined ? file : selectedFile;
-      const activeKey = targetFile ? undefined : (sampleKey !== undefined ? (sampleKey || undefined) : (activeSampleId || undefined));
       const res = await analyzePlantSpecimen({
         imageFile: targetFile,
         sampleKey: activeKey,
@@ -207,10 +211,13 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
     }
   };
 
-  // Run analysis when specimen changes or on initial mount
+  // Run analysis ONLY when a specimen is explicitly passed via initialSpecimenId (e.g. from Field Guide)
   React.useEffect(() => {
+    if (!initialSpecimenId) return;
     const key = resolveSampleId(initialSpecimenId);
-    const specimen = SAMPLE_SPECIMENS.find(s => s.id === key) || SAMPLE_SPECIMENS[0];
+    const specimen = SAMPLE_SPECIMENS.find(s => s.id === key);
+    if (!specimen) return;
+
     setActiveSampleId(specimen.id);
     setImagePreview(specimen.image);
     setSelectedFile(null);
@@ -297,9 +304,23 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (
-                <div className="text-center p-6 text-emerald-400/60 space-y-2">
-                  <Camera className="w-12 h-12 mx-auto stroke-1" />
-                  <p className="text-xs">No specimen image chosen</p>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="cursor-pointer text-center p-6 sm:p-8 text-emerald-400/70 hover:text-emerald-300 space-y-3 transition-colors flex flex-col items-center justify-center h-full w-full border-2 border-dashed border-emerald-500/25 hover:border-emerald-400/50 rounded-2xl bg-black/40 hover:bg-emerald-950/20"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-950/70 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
+                    <Camera className="w-7 h-7 stroke-1.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">No Specimen Selected</p>
+                    <p className="text-xs text-emerald-400/70 mt-1 max-w-xs leading-relaxed">
+                      Upload a field photo or click any test specimen below to run local AI analysis
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-900/40 border border-emerald-500/30 text-emerald-300">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Click to browse photo</span>
+                  </span>
                 </div>
               )}
 
@@ -357,11 +378,11 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
               </button>
               <button
                 onClick={() => runAnalysis(selectedFile ? '' : activeSampleId, selectedFile)}
-                disabled={analyzing}
-                className="py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60 border border-emerald-400/40 transition-all disabled:opacity-50"
+                disabled={analyzing || (!selectedFile && !activeSampleId && !speciesHintInput.trim())}
+                className="py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/60 border border-emerald-400/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
-                <span>Re-Analyze</span>
+                <Sparkles className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
+                <span>{result ? 'Re-Analyze' : 'Analyze Specimen'}</span>
               </button>
             </div>
           </div>
@@ -755,9 +776,68 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
 
             </div>
           ) : (
-            <div className="rounded-3xl glass-card border border-emerald-500/20 p-12 text-center text-emerald-400/70 space-y-4">
-              <RefreshCw className="w-8 h-8 mx-auto animate-spin text-emerald-400" />
-              <p className="text-sm font-medium">Scanning specimen with local open-weight model...</p>
+            /* Void / Idle State: Awaiting specimen selection or upload */
+            <div className="rounded-3xl glass-card border border-emerald-500/20 p-6 sm:p-8 md:p-10 space-y-8 bg-[#0c1611]/80 backdrop-blur-xl animate-fade-in">
+              <div className="text-center max-w-md mx-auto space-y-4">
+                <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-gradient-to-br from-emerald-500/20 to-green-500/10 border border-emerald-500/30 text-emerald-400 shadow-inner">
+                  <Leaf className="w-8 h-8 stroke-1.5" />
+                  <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400/20 border border-emerald-400/40 flex items-center justify-center">
+                    <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-extrabold text-white font-display tracking-tight">
+                    Awaiting Botanical Specimen
+                  </h3>
+                  <p className="text-xs sm:text-sm text-emerald-300/70 mt-1.5 leading-relaxed">
+                    Select a sample specimen from the test drive, upload a field photo, or provide a botanical clue to start open-weight AI analysis.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 Informational Preview Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div className="p-4 rounded-2xl bg-black/40 border border-emerald-500/15 space-y-2 hover:border-emerald-500/30 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Eye className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white">Visual Taxonomy</h4>
+                  <p className="text-[11px] text-emerald-300/70 leading-relaxed">
+                    Examines flower morphology, petal symmetry, and leaf veining patterns.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/40 border border-emerald-500/15 space-y-2 hover:border-emerald-500/30 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white">Ecological Role</h4>
+                  <p className="text-[11px] text-emerald-300/70 leading-relaxed">
+                    Identifies native vs invasive status, habitat soil preferences, and food web connections.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/40 border border-emerald-500/15 space-y-2 hover:border-emerald-500/30 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Compass className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white">Touch Grass Challenges</h4>
+                  <p className="text-[11px] text-emerald-300/70 leading-relaxed">
+                    Generates interactive sensory outdoor prompts to connect directly with nature.
+                  </p>
+                </div>
+              </div>
+
+              {/* Status bar */}
+              <div className="pt-4 border-t border-emerald-500/15 flex flex-wrap items-center justify-between gap-3 text-xs text-emerald-400/70 font-mono">
+                <span className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${ollamaOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+                  <span>{ollamaOnline ? 'Local Engine Standby (Online)' : 'Heuristic Engine Standby (Offline Mode)'}</span>
+                </span>
+                <span className="text-emerald-400/50 text-[11px]">
+                  Model: {ollamaConfig.customModelName || ollamaConfig.model}
+                </span>
+              </div>
             </div>
           )}
         </div>
