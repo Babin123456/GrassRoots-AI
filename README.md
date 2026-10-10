@@ -75,7 +75,7 @@ graph TD
 ```
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS, Vite
-- **Icons & Motion**: Lucide React, Framer Motion, Canvas Confetti
+- **Icons & Motion**: Lucide React, Canvas Confetti, Tailwind CSS Animations
 - **Inference Engine**: Ollama (`http://localhost:11434`), Gemma 2 (9B / 2B), Llama 3 (8B)
 - **Persistence**: Browser `localStorage` (Zero tracking cookies, 100% offline-ready)
 
