@@ -30,6 +30,7 @@ interface PlantScannerProps {
   ollamaOnline: boolean;
   onLogObservation: (log: Omit<ObservationLog, 'id' | 'timestamp'>) => void;
   initialSpecimenId?: string;
+  onAnalyzingChange?: (analyzing: boolean) => void;
 }
 
 interface SampleSpecimen {
@@ -142,6 +143,7 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
   ollamaOnline,
   onLogObservation,
   initialSpecimenId,
+  onAnalyzingChange,
 }) => {
   const targetId = resolveSampleId(initialSpecimenId);
   const initialSpecimen = SAMPLE_SPECIMENS.find(s => s.id === targetId) || SAMPLE_SPECIMENS[0];
@@ -157,6 +159,11 @@ export const PlantScanner: React.FC<PlantScannerProps> = ({
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isAnalyzingRef = useRef<boolean>(false);
+
+  // Notify parent of analyzing state changes
+  React.useEffect(() => {
+    onAnalyzingChange?.(analyzing);
+  }, [analyzing, onAnalyzingChange]);
 
   // Synchronize thinking timer and steps while analyzing
   React.useEffect(() => {
