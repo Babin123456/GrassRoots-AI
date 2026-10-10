@@ -2,7 +2,7 @@ import type { PlantAnalysisResult, TrailActivity, OllamaConfig } from '../types'
 
 export const DEFAULT_OLLAMA_CONFIG: OllamaConfig = {
   endpoint: 'http://localhost:11434',
-  model: 'gemma2:9b',
+  model: 'gemma2:2b',
   customModelName: '',
   temperature: 0.3,
 };
@@ -527,7 +527,7 @@ Format strictly as JSON.`;
       prompt: reasoningPrompt,
       temperature: config.temperature,
       imageBase64: visualDescription ? undefined : imageBase64, // pass raw image directly if no separate vision model was found
-      timeoutMs: 60000,
+      timeoutMs: 120000,
     });
 
     if (liveResult) {
@@ -562,7 +562,7 @@ async function queryOllamaVisionOrText(opts: {
 }): Promise<Partial<PlantAnalysisResult> | null> {
   const url = `${opts.endpoint.replace(/\/$/, '')}/api/generate`;
   const controller = new AbortController();
-  const timeoutMs = opts.timeoutMs || 90000; // 90s to allow larger models running on CPU to complete without connection abort
+  const timeoutMs = opts.timeoutMs || 120000; // 120s to allow CPU execution without connection abort
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
