@@ -21,7 +21,6 @@ import { generateTrailPlan } from '../services/aiService';
 
 interface TrailAdvisorProps {
   ollamaConfig: OllamaConfig;
-  onIncrementStreak: () => void;
 }
 
 const ECOSYSTEMS = [
@@ -52,7 +51,6 @@ const FOCUS_AREAS = [
 
 export const TrailAdvisor: React.FC<TrailAdvisorProps> = ({
   ollamaConfig,
-  onIncrementStreak,
 }) => {
   const [selectedEcosystem, setSelectedEcosystem] = useState(ECOSYSTEMS[0]);
   const [selectedDuration, setSelectedDuration] = useState(DURATIONS[1]);
@@ -93,9 +91,6 @@ export const TrailAdvisor: React.FC<TrailAdvisorProps> = ({
     } else {
       const updated = [...completedWaypoints, step];
       setCompletedWaypoints(updated);
-      if (trail && updated.length === trail.waypoints.length) {
-        onIncrementStreak();
-      }
     }
   };
 
@@ -389,7 +384,7 @@ export const TrailAdvisor: React.FC<TrailAdvisorProps> = ({
                 <span>All Waypoints Checked! Outdoor Touch-Grass Goal Met!</span>
               </div>
               <p className="text-xs text-emerald-200">
-                Your outdoor streak has increased! Take a moment to log any unique discoveries in your Field Journal.
+                You completed this ecological excursion. Take a moment to log any unique discoveries in your Field Journal!
               </p>
             </div>
           )}

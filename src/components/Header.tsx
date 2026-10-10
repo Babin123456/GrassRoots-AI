@@ -5,7 +5,6 @@ import {
   BookOpen, 
   Library, 
   Settings, 
-  Flame, 
   Radio, 
   CheckCircle2, 
   Leaf 
@@ -18,7 +17,6 @@ interface HeaderProps {
   ollamaOnline: boolean;
   ollamaConfig: OllamaConfig;
   onOpenSettings: () => void;
-  streakCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -27,7 +25,6 @@ export const Header: React.FC<HeaderProps> = ({
   ollamaOnline,
   ollamaConfig,
   onOpenSettings,
-  streakCount,
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-emerald-500/20 bg-[#070b09]/80 backdrop-blur-xl">
@@ -111,13 +108,6 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Status Controls */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Streak Counter */}
-            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] sm:text-xs font-bold shadow-sm" title="Consecutive days exploring outdoors!">
-              <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 animate-pulse" />
-              <span className="hidden sm:inline">{streakCount} Day Streak</span>
-              <span className="sm:hidden">{streakCount}d</span>
-            </div>
-
             {/* Ollama Connection Indicator */}
             <div 
               onClick={onOpenSettings}

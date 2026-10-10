@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   Sprout,
   Bug,
-  Flame,
   Leaf
 } from 'lucide-react';
 import type { ObservationLog } from '../types';
@@ -23,7 +22,6 @@ interface FieldJournalProps {
   onAddObservation: (log: Omit<ObservationLog, 'id' | 'timestamp'>) => void;
   onDeleteObservation: (id: string) => void;
   onClearAll: () => void;
-  streakCount: number;
 }
 
 export const FieldJournal: React.FC<FieldJournalProps> = ({
@@ -31,7 +29,6 @@ export const FieldJournal: React.FC<FieldJournalProps> = ({
   onAddObservation,
   onDeleteObservation,
   onClearAll: _onClearAll,
-  streakCount,
 }) => {
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -87,7 +84,7 @@ export const FieldJournal: React.FC<FieldJournalProps> = ({
     });
 
     let md = `# GrassRoots AI — Community Field Observation Summary\n`;
-    md += `*Generated on ${dateStr} • Outdoor Exploration Streak: ${streakCount} Days*\n\n`;
+    md += `*Generated on ${dateStr}*\n\n`;
     md += `### Summary Metrics\n`;
     md += `- Total Logged Discoveries: **${observations.length}**\n`;
     md += `- AI Verified Identifications: **${observations.filter((o) => o.verifiedWithAi).length}**\n`;
@@ -141,8 +138,8 @@ export const FieldJournal: React.FC<FieldJournalProps> = ({
         </p>
       </div>
 
-      {/* Badges / Gamification Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Badges / Metrics Banner */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-4 rounded-2xl glass-card border border-emerald-500/20 text-center space-y-1">
           <div className="flex justify-center text-emerald-400">
             <Sprout className="w-6 h-6" />
@@ -170,16 +167,6 @@ export const FieldJournal: React.FC<FieldJournalProps> = ({
           <p className="text-xs font-bold text-white">Fungi Whisperer</p>
           <p className="text-[10px] text-emerald-400/80 font-mono">
             {observations.filter((o) => o.category === 'Fungi').length} Fungi Logs
-          </p>
-        </div>
-
-        <div className="p-4 rounded-2xl glass-card border border-emerald-500/20 text-center space-y-1">
-          <div className="flex justify-center text-amber-500">
-            <Flame className="w-6 h-6 animate-pulse" />
-          </div>
-          <p className="text-xs font-bold text-white">Outdoors Streak</p>
-          <p className="text-[10px] text-emerald-400/80 font-mono">
-            {streakCount} Active Days
           </p>
         </div>
       </div>

@@ -41,12 +41,6 @@ export function App() {
     return INITIAL_OBSERVATIONS;
   });
 
-  // Streak counter in localStorage
-  const [streakCount, setStreakCount] = useState<number>(() => {
-    const saved = localStorage.getItem('grassroots_streak');
-    return saved ? parseInt(saved, 10) : 5;
-  });
-
   // Check Ollama connectivity on mount
   const refreshOllama = async () => {
     try {
@@ -92,13 +86,6 @@ export function App() {
     localStorage.removeItem('grassroots_observations');
   };
 
-  // Increment streak
-  const handleIncrementStreak = () => {
-    const updated = streakCount + 1;
-    setStreakCount(updated);
-    localStorage.setItem('grassroots_streak', updated.toString());
-  };
-
   const [selectedSpecimenId, setSelectedSpecimenId] = useState<string | undefined>(undefined);
 
   return (
@@ -111,7 +98,6 @@ export function App() {
         ollamaOnline={ollamaOnline}
         ollamaConfig={ollamaConfig}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        streakCount={streakCount}
       />
 
       {/* Main Container */}
@@ -128,7 +114,6 @@ export function App() {
         {activeTab === 'trails' && (
           <TrailAdvisor
             ollamaConfig={ollamaConfig}
-            onIncrementStreak={handleIncrementStreak}
           />
         )}
 
@@ -138,7 +123,6 @@ export function App() {
             onAddObservation={handleAddObservation}
             onDeleteObservation={handleDeleteObservation}
             onClearAll={handleClearObservations}
-            streakCount={streakCount}
           />
         )}
 
