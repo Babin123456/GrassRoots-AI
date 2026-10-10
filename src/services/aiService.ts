@@ -603,27 +603,11 @@ export async function analyzePlantSpecimen(params: {
     // STAGE 2: Deep Botanical Reasoning via Gemma 2 / Selected Language Model
     let reasoningPrompt = '';
     if (visualDescription) {
-      reasoningPrompt = `Visual analysis of specimen photo (${usedVisionModel}): "${visualDescription}". Context hint: "${speciesHint || 'None'}".
-
-You are GrassRoots AI botanical taxonomist. Your primary mission is identifying native flora, wildflowers, trees, and fungi.
-
-INSTRUCTIONS:
-1. FLORA IDENTIFICATION (Primary):
-If the visual description depicts any plant, flower, petal, blossom, leaf, fungus, tree, or wildlife specimen:
-- Identify the most accurate common name (e.g. "Sacred Lotus / Water Lily", "Pink Lotus", "Wildflower").
-- Provide proper binomial scientificName (e.g. "Nelumbo nucifera") and botanical family (e.g. "Nelumbonaceae").
-- Set nativeStatus ('Native', 'Non-Native Naturalized', or 'Invasive').
-- Provide a realistic botanical confidence score between 80 and 98.
-- Detail ecological role (pollinators, aquatic habitat, soil benefits), sunlight needs, soil moisture, bloom season.
-- Provide keyIdentificationFeatures (array of strings) and an inspiring touchGrassChallenge.
-
-2. NON-BOTANICAL ONLY:
-ONLY if the visual description explicitly states this is an electronic gadget, computer monitor, car, indoor furniture, or abstract synthetic digital graphic:
-- Set nativeStatus to "Non-Living / Synthetic" and confidence to 15.
-
-Format strictly as JSON with keys: commonName, scientificName, family, nativeStatus, confidence, ecologicalRole, sunlightNeeds, soilMoisture, bloomSeason, touchGrassChallenge, keyIdentificationFeatures, foragingSafety (with isEdible, cautionNote, lookalikesWarning).`;
+      reasoningPrompt = `Visual analysis: "${visualDescription}". Hint: "${speciesHint || 'None'}".
+You are GrassRoots AI botanical taxonomist. Identify this wild flora specimen.
+Format strictly as JSON with keys: commonName, scientificName, family, nativeStatus ("Native" or "Non-Native"), confidence (80-98), ecologicalRole (1 concise sentence), sunlightNeeds, soilMoisture, bloomSeason, touchGrassChallenge (1 outdoor observation prompt), keyIdentificationFeatures (array of 2 short bullet strings).`;
     } else {
-      reasoningPrompt = `Analyze this plant / outdoor specimen: "${speciesHint || 'Specimen in the field'}". Return botanical analysis as JSON. Provide fields: commonName, scientificName, family, nativeStatus, confidence (80-98), ecologicalRole, sunlightNeeds, soilMoisture, bloomSeason, foragingSafety, keyIdentificationFeatures, and touchGrassChallenge.`;
+      reasoningPrompt = `Analyze specimen: "${speciesHint || 'Field flora'}". Return JSON with keys: commonName, scientificName, family, nativeStatus, confidence (80-98), ecologicalRole, sunlightNeeds, soilMoisture, bloomSeason, touchGrassChallenge, keyIdentificationFeatures.`;
     }
 
     const liveResult = await queryOllamaVisionOrText({
@@ -632,7 +616,7 @@ Format strictly as JSON with keys: commonName, scientificName, family, nativeSta
       prompt: reasoningPrompt,
       temperature: config.temperature,
       imageBase64: undefined, // Never send raw images to text reasoning models (Gemma 2 / Llama 3)
-      timeoutMs: 60000,
+      timeoutMs: 180000,
     });
 
     if (liveResult) {
@@ -714,7 +698,7 @@ async function queryOllamaVisionOrText(opts: {
 }): Promise<Partial<PlantAnalysisResult> | null> {
   const url = `${opts.endpoint.replace(/\/$/, '')}/api/generate`;
   const controller = new AbortController();
-  const timeoutMs = opts.timeoutMs || 50000; // 50s timeout to allow local CPU runner inference
+  const timeoutMs = opts.timeoutMs || 180000; // 180s timeout to allow local CPU runner inference without client abort
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -725,7 +709,7 @@ async function queryOllamaVisionOrText(opts: {
       keep_alive: '15m',
       options: {
         temperature: opts.temperature,
-        num_predict: 220,
+        num_predict: 140,
       },
     };
 
