@@ -387,6 +387,35 @@ function generateGenericBotanicalResult(
 
   // If a custom image was uploaded and no specific match was found
   if (hasUploadedFile) {
+    const isSyntheticClue = speciesHint && /logo|graphic|digital|screen|icon|human|person|code|computer|shirt|hoodie|text|mergeconflict/i.test(speciesHint);
+    if (isSyntheticClue) {
+      return {
+        commonName: 'Digital Graphic / Non-Botanical Subject',
+        scientificName: 'Non-Living / Synthetic Subject',
+        family: 'Synthetic / Non-Botanical',
+        nativeStatus: 'Non-Living / Synthetic',
+        conservationStatus: 'Non-Living',
+        confidence: 15.0,
+        ecologicalRole: 'Artificial or digital graphic detected. Step away from computer monitors to discover living plants and soil outdoors!',
+        sunlightNeeds: 'N/A — Non-living subject',
+        soilMoisture: 'N/A — Non-living subject',
+        bloomSeason: 'Non-flowering',
+        foragingSafety: {
+          isEdible: false,
+          cautionNote: 'Non-botanical subject. Never ingest digital or synthetic objects.',
+        },
+        keyIdentificationFeatures: [
+          'Digital graphic, render, or apparel artwork detected',
+          'No living leaf venation, chlorophyll, or petal structures verified',
+          'Photograph living wild plants in natural outdoor daylight'
+        ],
+        touchGrassChallenge: 'Close computer screens for 15 minutes, take a walk outdoors, and touch living tree bark or garden grass!',
+        modelUsed: modelName,
+        inferenceTimeMs: 380,
+        isMockFallback: true,
+      };
+    }
+
     return {
       commonName: 'Wild Flora Specimen',
       scientificName: 'Angiosperm species',
@@ -532,7 +561,7 @@ export async function analyzePlantSpecimen(params: {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model: visionCandidate,
-              prompt: 'Identify what plant, flower, leaf, or subject is shown in this image. State the flower or leaf shape, colors, and species type in 1 concise sentence. If clearly not a plant or nature (e.g. computer, car, screenshot), state what it is.',
+              prompt: 'Is this a real living plant or flower? Or is it a digital graphic, logo, person, text, code, or non-botanical object? Describe concisely what you see in 1 sentence.',
               stream: false,
               images: [imageBase64],
               keep_alive: '15m',
@@ -555,7 +584,7 @@ export async function analyzePlantSpecimen(params: {
       }
 
       // Check if explicitly non-flora or non-botanical graphic
-      const nonBotanicalPattern = /brain|book|digital|graphic|illustration|render|screen|computer|neon|artificial|not a plant|non-plant|human|person|car|room|device|gadget|drawing|symbol|icon/i;
+      const nonBotanicalPattern = /brain|book|digital|graphic|illustration|render|screen|computer|neon|artificial|not a plant|non-plant|human|person|people|man|men|woman|women|figure|character|car|room|device|gadget|drawing|symbol|icon|logo|text|letter|word|font|hoodie|jacket|shirt|code|coding|developer|apparel|poster|banner|sticker|cartoon|anime|clipart/i;
       const isExplicitlyNonFlora = visualDescription ? nonBotanicalPattern.test(visualDescription) : false;
 
       if (isExplicitlyNonFlora) {
